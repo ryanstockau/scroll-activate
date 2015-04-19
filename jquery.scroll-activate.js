@@ -8,6 +8,8 @@ www.ryanstock.com.au
 
 */
 
+
+
  
 ;(function ( $, window, document, undefined ) {
 	 
@@ -18,18 +20,7 @@ www.ryanstock.com.au
 		self.elem = elem;
 		self.$elem = $(elem);
 		self.options = options;
-		
-		// Allow options to be presented via HTML data-plugin-options attribute, eg:
-		// <div class='item' data-plugin-options='{"message":"Goodbye World!"}'></div>
-		self.metadata = self.$elem.data( 'plugin-options' );
     };
-	
-	
-	
-	// Vars
-	
-	var last_scroll_check = 0;
-	var scroll_check_timeout;
 	
 	
 	// Plugin Prototype
@@ -37,6 +28,7 @@ www.ryanstock.com.au
 	ScrollActivate.prototype = {
 		
 		defaults: {
+			elementClass : 'scrollactivate-element',
 			deactivateClass : 'scrollactivate-deactivate',
 			visibleClass : 'scrollactivate-activate',
 			readyClass : 'scrollactivate-ready',
@@ -59,7 +51,9 @@ www.ryanstock.com.au
 			self.$elem.data('scroll-activate', self);
 			
 			// Set combined config
-			self.config = $.extend({}, self.defaults, self.options, self.metadata);
+			self.config = $.extend({}, self.defaults, self.options);
+			
+			self.$elem.addClass( self.config.elementClass );
 		
 			self._defineElements();
 			
@@ -71,6 +65,8 @@ www.ryanstock.com.au
 		
 			self.$elem.addClass(self.config.readyClass);
 			
+			$(window).scroll($.proxy(self._scrollCheck,self));
+			
 			self._scrollCheckLoop();
 			
 			return self;
@@ -78,36 +74,54 @@ www.ryanstock.com.au
 		
 		
 		_defineElements : function() {
+			var self = this;			
 			self.$activate_elements = self.$elem.filter( self.config.activateElementFilter );
 			self.$deactivate_elements = self.$elem.filter( self.config.deactivateElementFilter );
 			self.$activate_only_elements = self.$activate_elements.not( self.$deactivate_elements );
 			self.$deactivate_only_elements = self.$deactivate_elements.not( self.$activate_elements );
 			
-			self.$base_elements = self.$elem.not('.'+self.config.elementClass+' '+'.'+self.config.elementClass);
-			self.$child_elements = self.$elem.not(self.$base_elements);
+			self.$child_elements = self.$elem.filter(function(){
+				return $(this).parents( '.'+self.config.elementClass ).length;
+			});;
+			self.$base_elements = self.$elem.not(self.$child_elements);
 		},
 		
 		
 		_updateElements : function( $elements, delay ) {
 			var self = this;
+			console.log('_updateElements()');
 			if ( typeof $elements == 'undefined' ) {
 				var $elements = self.$base_elements;
+			} else {
+				//console.log( 'Not setting $elements to default' );
+			}
+			if ( ! $elements.length ) {
+				return;	
 			}
 			if ( typeof delay == 'undefined' ) {
 				var delay = self.config.elementDelay;
 			}
 			var checked_elements = self._checkElementVisibilities( $elements );
-			var $visible_elements = checked_elements.visible;
-			var $invisible_elements = checked_elements.hidden;
+			var $visible_elements = checked_elements.visible.filter(self.$activate_elements);
+			var $invisible_elements = checked_elements.hidden.filter(self.$deactivate_elements);
 			
 			setTimeout( function() {
-				self._activateElements( $visible_elements.is(self.$activate_elements) );				
-				self._deactivateElements( $invisible_elements.is(self.$deactivate_elements) );				
+				$visible_elements.each(function(index,element){
+					var $element = $(this);
+					if ( ! ( element_delay = $element.attr('data-scrollactivate-delay') ) ) {
+						element_delay = self.config.delay * index; // todo: should config delay get added to delay instead?			
+					}
+					setTimeout( function() {
+						self._activateElements( $element );	
+					}, element_delay );
+				});
+				self._deactivateElements( $invisible_elements );				
 			}, delay);			
 		},
 		
 		
 		_activateElements : function( $elements ) {
+			var self = this;
 			$elements.not(self.config.visibleClass)
 				.removeClass(self.config.deactivateClass)
 				.addClass(self.config.visibleClass);
@@ -116,6 +130,7 @@ www.ryanstock.com.au
 		
 		
 		_deactivateElements : function( $elements ) {
+			var self = this;
 			$elements.add( $elements.find(self.$child_elements) )
 				.removeClass(self.config.visibleClass)
 				.addClass(self.config.deactivateClass);			
@@ -126,15 +141,17 @@ www.ryanstock.com.au
 			var self = this;
 			var window_height = $(window).height(),
 				window_scrolltop = $(window).scrollTop(),
-				visible_elements,
-				hidden_elements,
+				$visible_elements = $(),
+				$hidden_elements = $(),
 				elements;
 				
+			//console.log( $elements );
+			//console.log( typeof $elements );
 			if ( typeof $elements == 'undefined' ) {
 				var $elements = self.$elem;
 			}
 								
-			$elements.each(function(){
+			$elements.each(function(index){
 				var $element = $(this);
 				var	min_position, 
 					max_position;
@@ -149,9 +166,6 @@ www.ryanstock.com.au
 				}
 				if ( 'bottom' == max_position ) {
 					max_position = window_height;	
-				}
-				if ( ! ( element_delay = $element.attr('data-scrollactivate-delay') ) ) {
-					element_delay = delay * index;					
 				}
 				
 				var top = $element.offset().top;
@@ -171,54 +185,59 @@ www.ryanstock.com.au
 				
 				// Show elements when they appear on screen
 				if ( top_is_on_screen || bottom_is_on_screen || top_and_bottom_are_on_opposite_sides ) {
-					visible_elements.push( $element );
+					$visible_elements = $visible_elements.add( $element );
 				} else {
-					hidden_elements.push( $element );
+					$hidden_elements = $hidden_elements.add( $element );
 				}
 			});
 			return {
-				visible : $(visible_elements),
-				hidden : $(hidden_elements)
+				visible : $visible_elements,
+				hidden : $hidden_elements
 			};			
 		},
 	
 		
 		_scrollCheck : function( event ) {	
+			var self = this;
 			// If we last scrolled very recently, ignore this
-			if ( last_scroll_check > $.now() - 100 ) {
+			if ( self.lastScrollCheck > $.now() - 150 ) {
 				return;
 			}
-			last_scroll_check = $.now();
+			self.lastScrollCheck = $.now();
 			// If we scrolled fairly recently and are about to run our check, ignore this
-			if ( scroll_check_timeout ) {
+			if ( self.scrollCheckTimeout ) {
 				return;	
 			}
 			// Otherwise update elements after a timeout
-			scroll_check_timeout = setTimeout( function() {
+			self.scrollCheckTimeout = setTimeout( function() {
 				self._updateElements();
-				clearTimeout( scroll_check_timeout );
-				scroll_check_timeout = null;
-			}, 100 );
+				clearTimeout( self.scrollCheckTimeout );
+				self.scrollCheckTimeout = null;
+			}, 150 );
 		},
 		
 		
 		// Check our elements at a regular interval (in case the page changed and we haven't scrolled)
 		_scrollCheckLoop : function() {
+			var self = this;
 			self._scrollCheck();
-			setTimeout( self._scrollCheckLoop, self.config.loopDelay );			
+			setTimeout( $.proxy(self._scrollCheckLoop,self), self.config.loopDelay );			
 		}
 				
 	}
 	
 	ScrollActivate.defaults = ScrollActivate.prototype.defaults;
-	
+
+
 	
 	// Create plugin
 	
 	$.fn.scrollActivate = function(options) {
+		return new ScrollActivate(this, options).init();
+		/*
 		return this.each(function() {
 			new ScrollActivate(this, options).init();
-		});
+		});*/
 	};
 	
 })( jQuery, window , document );
