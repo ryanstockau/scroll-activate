@@ -29,8 +29,8 @@ www.ryanstock.com.au
 		
 		defaults: {
 			elementClass : 'scrollactivate-element',
-			deactivateClass : 'scrollactivate-deactivate',
-			visibleClass : 'scrollactivate-activate',
+			deactivateClass : 'scrollactivate-offscreen',
+			activateClass : 'scrollactivate-onscreen',
 			readyClass : 'scrollactivate-ready',
 			notransClass : 'scrollactivate-notrans',
 			
@@ -60,7 +60,7 @@ www.ryanstock.com.au
 			self.$activate_only_elements
 				.addClass(self.config.notransClass)
 				.addClass(self.config.deactivateClass)
-				.removeClass(self.config.visibleClass)
+				.removeClass(self.config.activateClass)
 				.removeClass(self.config.notransClass);
 		
 			self.$elem.addClass(self.config.readyClass);
@@ -122,9 +122,9 @@ www.ryanstock.com.au
 		
 		_activateElements : function( $elements ) {
 			var self = this;
-			$elements.not(self.config.visibleClass)
+			$elements.not(self.config.activateClass)
 				.removeClass(self.config.deactivateClass)
-				.addClass(self.config.visibleClass);
+				.addClass(self.config.activateClass);
 			self._updateElements( $elements.find(self.$child_elements), self.config.childDelay );
 		},
 		
@@ -132,7 +132,7 @@ www.ryanstock.com.au
 		_deactivateElements : function( $elements ) {
 			var self = this;
 			$elements.add( $elements.find(self.$child_elements) )
-				.removeClass(self.config.visibleClass)
+				.removeClass(self.config.activateClass)
 				.addClass(self.config.deactivateClass);			
 		},
 		
