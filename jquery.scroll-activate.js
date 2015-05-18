@@ -42,7 +42,7 @@ www.ryanstock.com.au
 			deactivateElementFilter : function(){ return $(this).attr('data-scrollactivate-deactivate') == 'true'; }
 		},
 		
-		
+		// Add required classes to elements and enable scroll handler.
 		init: function() {
 			
 			var self = this;
@@ -73,6 +73,7 @@ www.ryanstock.com.au
 		},
 		
 		
+		// Find and store all types of elements.
 		_defineElements : function() {
 			var self = this;			
 			self.$activate_elements = self.$elem.filter( self.config.activateElementFilter );
@@ -80,13 +81,21 @@ www.ryanstock.com.au
 			self.$activate_only_elements = self.$activate_elements.not( self.$deactivate_elements );
 			self.$deactivate_only_elements = self.$deactivate_elements.not( self.$activate_elements );
 			
-			self.$child_elements = self.$elem.filter(function(){
-				return $(this).parents( '.'+self.config.elementClass ).length;
-			});;
+			self.$control_elements = self.$elem.filter(function() {
+				return $(this).attr('data-scrollactivate-linkchildren') == 'true';
+			});
+			
+			console.log('self.$control_elements', self.$control_elements );
+			// Define all elements that have another valid element above them
+			self.$child_elements = self.$control_elements.find(self.$elem).filter(function(){
+				return $(this).parents('.'+self.config.elementClass).length;
+			});
+			self.$child_elements.addClass('scrollactivate-child');
 			self.$base_elements = self.$elem.not(self.$child_elements);
 		},
 		
 		
+		// Check if element are on screen (except if skip_check), then de/activate them.
 		_updateElements : function( $elements, delay, skip_check ) {
 			var self = this;
 			if ( typeof $elements == 'undefined' ) {
@@ -103,12 +112,14 @@ www.ryanstock.com.au
 			var checked_elements, $visible_elements, $invisible_elements;
 			if ( skip_check ) {
 				$visible_elements = $elements.filter(self.$activate_elements);
+				console.log( '$visible_elements after skip: ', $visible_elements );
 				$invisible_elements = $();
 			} else {
 				checked_elements = self._checkElementVisibilities( $elements );
 				$visible_elements = checked_elements.visible.filter(self.$activate_elements);
 				$invisible_elements = checked_elements.hidden.filter(self.$deactivate_elements);
 			}
+			
 			
 			setTimeout( function() {
 				$visible_elements.each(function(index,element){
@@ -117,7 +128,9 @@ www.ryanstock.com.au
 					if ( ! ( element_delay = $element.attr('data-scrollactivate-delay') ) ) {
 						element_delay = self.config.delay * index; // todo: should config delay get added to delay instead?			
 					}
+					// todo: optimise this so when there are lots with the same delay, do them together? Maybe turn them into an array with delay as key or something.
 					setTimeout( function() {
+						$element.addClass('skip-check-'+(skip_check?'1':'0'));
 						self._activateElements( $element );	
 					}, element_delay );
 				});
@@ -133,19 +146,17 @@ www.ryanstock.com.au
 			
 			$valid_elements.removeClass(self.config.deactivateClass).addClass(self.config.activateClass);
 			if ( $valid_elements.length ) {
-				$valid_elements.each(function(index,element) {
-					var $element = $(this);
-					if( $element.attr('data-scrollactivate-linkchildren') == 'true' ) {
-						$control_elements = $control_elements.add( $element );
-						$valid_elements = $valid_elements.not( $element );
-					}
-				});
+				$valid_control_elements = $valid_elements.filter( self.$control_elements );
+				$valid_elements = $valid_elements.not( $control_elements );
 			}
 			var $children;
-			if ( $control_elements.length ) {
-				$children = $control_elements.find(self.$child_elements);
+			if ( $valid_control_elements.length ) {
+				console.log( 'valid_control_elements', $valid_control_elements );
+			}
+			if ( $valid_control_elements.length ) {
+				// Update all child elements (while skipping the position check on them)
+				$children = $valid_control_elements.children(self.$child_elements);
 				if ( $children.length ) {
-					// Skip the position check for child elements
 					self._updateElements( $children, self.config.childDelay, true );
 				}
 			}
