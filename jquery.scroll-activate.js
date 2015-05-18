@@ -85,7 +85,6 @@ www.ryanstock.com.au
 				return $(this).attr('data-scrollactivate-linkchildren') == 'true';
 			});
 			
-			console.log('self.$control_elements', self.$control_elements );
 			// Define all elements that have another valid element above them
 			self.$child_elements = self.$control_elements.find(self.$elem).filter(function(){
 				return $(this).parents('.'+self.config.elementClass).length;
@@ -100,8 +99,6 @@ www.ryanstock.com.au
 			var self = this;
 			if ( typeof $elements == 'undefined' ) {
 				var $elements = self.$base_elements;
-			} else {
-				//console.log( 'Not setting $elements to default' );
 			}
 			if ( ! $elements.length ) {
 				return;	
@@ -112,7 +109,6 @@ www.ryanstock.com.au
 			var checked_elements, $visible_elements, $invisible_elements;
 			if ( skip_check ) {
 				$visible_elements = $elements.filter(self.$activate_elements);
-				console.log( '$visible_elements after skip: ', $visible_elements );
 				$invisible_elements = $();
 			} else {
 				checked_elements = self._checkElementVisibilities( $elements );
@@ -151,9 +147,6 @@ www.ryanstock.com.au
 			}
 			var $children;
 			if ( $valid_control_elements.length ) {
-				console.log( 'valid_control_elements', $valid_control_elements );
-			}
-			if ( $valid_control_elements.length ) {
 				// Update all child elements (while skipping the position check on them)
 				$children = $valid_control_elements.children(self.$child_elements);
 				if ( $children.length ) {
@@ -185,8 +178,6 @@ www.ryanstock.com.au
 				$hidden_elements = $(),
 				elements;
 				
-			//console.log( $elements );
-			//console.log( typeof $elements );
 			if ( typeof $elements == 'undefined' ) {
 				var $elements = self.$elem;
 			}
