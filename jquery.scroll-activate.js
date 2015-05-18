@@ -37,7 +37,11 @@ www.ryanstock.com.au
 			childDelay : 300, // Time before checking children of activated elements
 			
 			activateElementFilter : function(){ return $(this).attr('data-scrollactivate-activate') !== 'false'; },		
-			deactivateElementFilter : function(){ return $(this).attr('data-scrollactivate-deactivate') == 'true'; }
+			deactivateElementFilter : function(){ return $(this).attr('data-scrollactivate-deactivate') == 'true'; },
+			
+			controlElementFilter : function() {
+				return $(this).attr('data-scrollactivate-linkchildren') == 'true';
+			}
 		},
 		
 		// Add required classes to elements and enable scroll handler.
@@ -79,9 +83,8 @@ www.ryanstock.com.au
 			self.$activate_only_elements = self.$activate_elements.not( self.$deactivate_elements );
 			self.$deactivate_only_elements = self.$deactivate_elements.not( self.$activate_elements );
 			
-			self.$control_elements = self.$elem.filter(function() {
-				return $(this).attr('data-scrollactivate-linkchildren') == 'true';
-			});
+			self.$control_elements = self.$elem.filter( self.$controlElementFilter );
+			self.$control_elements.addClass('scrollactivate-control');
 			
 			// Define all elements that have another valid element above them
 			self.$child_elements = self.$control_elements.find(self.$elem).filter(function(){
