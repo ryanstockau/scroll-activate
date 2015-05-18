@@ -87,9 +87,8 @@ www.ryanstock.com.au
 		},
 		
 		
-		_updateElements : function( $elements, delay ) {
+		_updateElements : function( $elements, delay, skip_check ) {
 			var self = this;
-			console.log('_updateElements()');
 			if ( typeof $elements == 'undefined' ) {
 				var $elements = self.$base_elements;
 			} else {
@@ -101,13 +100,20 @@ www.ryanstock.com.au
 			if ( typeof delay == 'undefined' ) {
 				var delay = self.config.elementDelay;
 			}
-			var checked_elements = self._checkElementVisibilities( $elements );
-			var $visible_elements = checked_elements.visible.filter(self.$activate_elements);
-			var $invisible_elements = checked_elements.hidden.filter(self.$deactivate_elements);
+			var checked_elements, $visible_elements, $invisible_elements;
+			if ( skip_check ) {
+				$visible_elements = $elements.filter(self.$activate_elements);
+				$invisible_elements = $();
+			} else {
+				checked_elements = self._checkElementVisibilities( $elements );
+				$visible_elements = checked_elements.visible.filter(self.$activate_elements);
+				$invisible_elements = checked_elements.hidden.filter(self.$deactivate_elements);
+			}
 			
 			setTimeout( function() {
 				$visible_elements.each(function(index,element){
 					var $element = $(this);
+					var element_delay = 0;
 					if ( ! ( element_delay = $element.attr('data-scrollactivate-delay') ) ) {
 						element_delay = self.config.delay * index; // todo: should config delay get added to delay instead?			
 					}
@@ -122,10 +128,33 @@ www.ryanstock.com.au
 		
 		_activateElements : function( $elements ) {
 			var self = this;
-			$elements.not(self.config.activateClass)
-				.removeClass(self.config.deactivateClass)
-				.addClass(self.config.activateClass);
-			self._updateElements( $elements.find(self.$child_elements), self.config.childDelay );
+			var $control_elements = $();
+			var $valid_elements = $elements.not('.'+self.config.activateClass);
+			
+			$valid_elements.removeClass(self.config.deactivateClass).addClass(self.config.activateClass);
+			if ( $valid_elements.length ) {
+				$valid_elements.each(function(index,element) {
+					var $element = $(this);
+					if( $element.attr('data-scrollactivate-linkchildren') == 'true' ) {
+						$control_elements = $control_elements.add( $element );
+						$valid_elements = $valid_elements.not( $element );
+					}
+				});
+			}
+			var $children;
+			if ( $control_elements.length ) {
+				$children = $control_elements.find(self.$child_elements);
+				if ( $children.length ) {
+					// Skip the position check for child elements
+					self._updateElements( $children, self.config.childDelay, true );
+				}
+			}
+			if ( $valid_elements.length ) {
+				$children = $valid_elements.find(self.$child_elements);
+				if ( $children.length ) {
+					self._updateElements( $children, self.config.childDelay );
+				}
+			}
 		},
 		
 		
@@ -181,7 +210,7 @@ www.ryanstock.com.au
 				var bottom_is_low_enough = ( bottom_rel_position <= max_position );				
 				var bottom_is_on_screen = ( bottom_is_high_enough && bottom_is_low_enough );
 				
-				var top_and_bottom_are_on_opposite_sides = ( top < min_position ) && ( bottom > max_position );				
+				var top_and_bottom_are_on_opposite_sides = ( top_rel_position < min_position ) && ( bottom_rel_position > max_position );				
 				
 				// Show elements when they appear on screen
 				if ( top_is_on_screen || bottom_is_on_screen || top_and_bottom_are_on_opposite_sides ) {
@@ -194,7 +223,7 @@ www.ryanstock.com.au
 				visible : $visible_elements,
 				hidden : $hidden_elements
 			};			
-		},
+		},	
 	
 		
 		_scrollCheck : function( event ) {	
