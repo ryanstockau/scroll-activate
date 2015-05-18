@@ -8,8 +8,6 @@ www.ryanstock.com.au
 
 */
 
-
-
  
 ;(function ( $, window, document, undefined ) {
 	 
@@ -265,10 +263,6 @@ www.ryanstock.com.au
 	
 	$.fn.scrollActivate = function(options) {
 		return new ScrollActivate(this, options).init();
-		/*
-		return this.each(function() {
-			new ScrollActivate(this, options).init();
-		});*/
 	};
 	
 })( jQuery, window , document );
