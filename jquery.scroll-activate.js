@@ -83,10 +83,10 @@ www.ryanstock.com.au
 			self.$activate_only_elements = self.$activate_elements.not( self.$deactivate_elements );
 			self.$deactivate_only_elements = self.$deactivate_elements.not( self.$activate_elements );
 			
-			self.$control_elements = self.$elem.filter( self.$controlElementFilter );
+			self.$control_elements = self.$elem.filter( self.config.controlElementFilter );
 			self.$control_elements.addClass('scrollactivate-control');
 			
-			// Define all elements that have another valid element above them
+			// Define all elements that have a control element above them
 			self.$child_elements = self.$control_elements.find(self.$elem).filter(function(){
 				return $(this).parents('.'+self.config.elementClass).length;
 			});
@@ -138,19 +138,20 @@ www.ryanstock.com.au
 		
 		_activateElements : function( $elements ) {
 			var self = this;
-			var $control_elements = $();
+			var $valid_control_elements = $();
 			var $valid_elements = $elements.not('.'+self.config.activateClass);
 			
 			$valid_elements.removeClass(self.config.deactivateClass).addClass(self.config.activateClass);
 			if ( $valid_elements.length ) {
 				$valid_control_elements = $valid_elements.filter( self.$control_elements );
-				$valid_elements = $valid_elements.not( $control_elements );
+				$valid_elements = $valid_elements.not( $valid_control_elements );
 			}
 			var $children;
 			if ( $valid_control_elements.length ) {
 				// Update all child elements (while skipping the position check on them)
-				$children = $valid_control_elements.children(self.$child_elements);
+				$children = $valid_control_elements.find(self.$child_elements);
 				if ( $children.length ) {
+					console.log( $children );
 					self._updateElements( $children, self.config.childDelay, true );
 				}
 			}
